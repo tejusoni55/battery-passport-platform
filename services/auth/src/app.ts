@@ -33,7 +33,11 @@ async function start() {
   });
 }
 
-start().catch((err) => {
-  console.error("failed to start auth service", err);
-  process.exit(1);
-});
+export { app };
+
+if (require.main === module) {
+  start().catch((err) => {
+    console.error("failed to start auth service", err);
+    process.exit(1);
+  });
+}
