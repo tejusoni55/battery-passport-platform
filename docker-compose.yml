@@ -34,6 +34,7 @@ services:
       - "3004:3004"
     depends_on:
       - kafka
+      - mailpit
 
   mongodb:
     image: mongo:7.0.40
@@ -69,6 +70,12 @@ services:
       - "9001:9001"
     volumes:
       - minio-data:/data
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "1025:1025"
+      - "8025:8025"
 
 volumes:
   mongo-data:
