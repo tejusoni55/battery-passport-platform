@@ -1,14 +1,14 @@
-import express from 'express'
-import { config } from './config'
+import express from "express";
+import { config } from "./config";
 
-const app = express()
+const app = express();
 
-app.use(express.json())
+app.use(express.json());
 
-app.get('/health', (_req, res) => {
-  res.json({ service: config.serviceName })
-})
+app.get("/health", (req, res) => {
+  res.json({ service: config.serviceName });
+});
 
 app.listen(config.port, () => {
-  console.log(`${config.serviceName} service running on port ${config.port}`)
-})
+  console.log(`${config.serviceName} service running on port ${config.port}`);
+});
