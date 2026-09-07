@@ -20,6 +20,14 @@ describe('GET /health', () => {
   })
 })
 
+describe('unmatched routes', () => {
+  it('returns a JSON 404', async () => {
+    const res = await request(app).get('/not-a-real-route')
+    expect(res.status).toBe(404)
+    expect(res.body).toEqual({ message: 'Not found' })
+  })
+})
+
 describe('passport.created event', () => {
   it('sends an email with the created subject and event details', async () => {
     const event = {

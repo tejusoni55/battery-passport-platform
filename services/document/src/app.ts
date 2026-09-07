@@ -30,6 +30,9 @@ app.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {
   if (err instanceof ApiError) {
     return res.status(err.status).json({ message: err.message });
   }
+  if ((err as { type?: string })?.type === "entity.parse.failed") {
+    return res.status(400).json({ message: "Malformed JSON body" });
+  }
   console.error(err);
   return res.status(500).json({ message: "Internal server error" });
 });

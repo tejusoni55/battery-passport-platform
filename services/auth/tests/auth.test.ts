@@ -15,6 +15,18 @@ afterAll(async () => {
   await mongoose.connection.close()
 })
 
+describe('malformed request body', () => {
+  it('rejects a malformed JSON body with 400', async () => {
+    const res = await request(app)
+      .post('/api/auth/login')
+      .set('Content-Type', 'application/json')
+      .send('{"email": "broken",}')
+
+    expect(res.status).toBe(400)
+    expect(res.body).toEqual({ message: 'Malformed JSON body' })
+  })
+})
+
 describe('POST /api/auth/register', () => {
   it('registers a new user and returns 201', async () => {
     const res = await request(app)

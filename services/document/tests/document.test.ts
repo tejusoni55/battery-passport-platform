@@ -68,6 +68,19 @@ describe('POST /api/documents/upload', () => {
     })
     expect(res.body.s3Key).toBeDefined()
     expect(res.body.fileSize).toBeGreaterThan(0)
+    expect(res.body.docId).toBeDefined()
+    expect(res.body.id).toBeUndefined()
+  })
+
+  it('rejects a malformed JSON body with 400', async () => {
+    const res = await request(app)
+      .put('/api/documents/000000000000000000000000')
+      .set('Authorization', `Bearer ${USER_TOKEN}`)
+      .set('Content-Type', 'application/json')
+      .send('{"fileName": "broken",}')
+
+    expect(res.status).toBe(400)
+    expect(res.body).toEqual({ message: 'Malformed JSON body' })
   })
 })
 
@@ -102,7 +115,7 @@ describe('GET /api/documents/:docId', () => {
     const uploaded = await uploadTestFile()
 
     const res = await request(app)
-      .get(`/api/documents/${uploaded.body.id}`)
+      .get(`/api/documents/${uploaded.body.docId}`)
       .set('Authorization', `Bearer ${USER_TOKEN}`)
 
     expect(res.status).toBe(200)
@@ -116,7 +129,7 @@ describe('PUT /api/documents/:docId', () => {
     const uploaded = await uploadTestFile()
 
     const res = await request(app)
-      .put(`/api/documents/${uploaded.body.id}`)
+      .put(`/api/documents/${uploaded.body.docId}`)
       .set('Authorization', `Bearer ${USER_TOKEN}`)
       .send({ fileName: 'renamed-report.pdf' })
 
@@ -128,7 +141,7 @@ describe('PUT /api/documents/:docId', () => {
     const uploaded = await uploadTestFile()
 
     const res = await request(app)
-      .put(`/api/documents/${uploaded.body.id}`)
+      .put(`/api/documents/${uploaded.body.docId}`)
       .set('Authorization', `Bearer ${USER_TOKEN}`)
       .send({})
 
@@ -141,13 +154,13 @@ describe('DELETE /api/documents/:docId', () => {
     const uploaded = await uploadTestFile()
 
     const deleteRes = await request(app)
-      .delete(`/api/documents/${uploaded.body.id}`)
+      .delete(`/api/documents/${uploaded.body.docId}`)
       .set('Authorization', `Bearer ${USER_TOKEN}`)
 
     expect(deleteRes.status).toBe(204)
 
     const downloadRes = await request(app)
-      .get(`/api/documents/${uploaded.body.id}`)
+      .get(`/api/documents/${uploaded.body.docId}`)
       .set('Authorization', `Bearer ${USER_TOKEN}`)
 
     expect(downloadRes.status).toBe(404)

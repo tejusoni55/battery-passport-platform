@@ -8,6 +8,10 @@ const app = express();
 app.use(express.json());
 app.use(notificationRoutes);
 
+app.use((req, res) => {
+  res.status(404).json({ message: "Not found" });
+});
+
 async function start() {
   await startConsumer();
   console.log("notification service consumer started");
