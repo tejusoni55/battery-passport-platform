@@ -1,6 +1,8 @@
 import express, { NextFunction, Request, Response } from "express";
+import swaggerUi from "swagger-ui-express";
 import { config } from "./config";
 import { connectDatabase } from "./config/db";
+import { swaggerSpec } from "./config/swagger";
 import { authRoutes } from "./modules/auth/auth.routes";
 import { ApiError } from "./utils/api-error";
 import { errorMeta, logger } from "./utils/logger";
@@ -12,6 +14,8 @@ app.use(express.json());
 app.get("/health", (req: Request, res: Response) => {
   res.json({ service: config.serviceName });
 });
+
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use("/api/auth", authRoutes);
 

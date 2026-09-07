@@ -1,8 +1,10 @@
 import express, { NextFunction, Request, Response } from "express";
 import mongoose from "mongoose";
 import multer from "multer";
+import swaggerUi from "swagger-ui-express";
 import { config } from "./config";
 import { ensureBucket } from "./config/minio";
+import { swaggerSpec } from "./config/swagger";
 import { documentRoutes } from "./modules/document/document.routes";
 import { ApiError } from "./utils/api-error";
 import { errorMeta, logger } from "./utils/logger";
@@ -14,6 +16,8 @@ app.use(express.json());
 app.get("/health", (req: Request, res: Response) => {
   res.json({ service: config.serviceName });
 });
+
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use("/api/documents", documentRoutes);
 

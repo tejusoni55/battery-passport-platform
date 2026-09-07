@@ -1,6 +1,8 @@
 import express, { NextFunction, Request, Response } from "express";
 import mongoose from "mongoose";
+import swaggerUi from "swagger-ui-express";
 import { config } from "./config";
+import { swaggerSpec } from "./config/swagger";
 import { PassportModel } from "./modules/passport/passport.model";
 import { passportRoutes } from "./modules/passport/passport.routes";
 import { ApiError } from "./utils/api-error";
@@ -13,6 +15,8 @@ app.use(express.json());
 app.get("/health", (req: Request, res: Response) => {
   res.json({ service: config.serviceName });
 });
+
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use("/api/passports", passportRoutes);
 
