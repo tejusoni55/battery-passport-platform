@@ -1,0 +1,113 @@
+import axios from 'axios'
+import mongoose from 'mongoose'
+import nock from 'nock'
+import request from 'supertest'
+import { app } from '../src/app'
+import { config } from '../src/config'
+import { ensureBucket } from '../src/config/minio'
+
+const USER_TOKEN = 'user-token'
+
+beforeAll(async () => {
+  await mongoose.connect(config.mongoUri)
+  await ensureBucket()
+
+  nock(config.authServiceUrl)
+    .persist()
+    .get('/api/auth/profile')
+    .reply(function () {
+      const header = this.req.headers.authorization
+      if (header === `Bearer ${USER_TOKEN}`) {
+        return [200, { id: 'user-id', email: 'user@example.com', role: 'user' }]
+      }
+      return [401, { message: 'Invalid or expired token' }]
+    })
+})
+
+beforeEach(async () => {
+  await mongoose.connection.db?.dropDatabase()
+})
+
+afterAll(async () => {
+  nock.cleanAll()
+  await mongoose.connection.close()
+})
+
+async function uploadTestFile() {
+  return request(app)
+    .post('/api/documents/upload')
+    .set('Authorization', `Bearer ${USER_TOKEN}`)
+    .attach('file', Buffer.from('%PDF-1.4 test content'), {
+      filename: 'report.pdf',
+      contentType: 'application/pdf',
+    })
+}
+
+describe('POST /api/documents/upload', () => {
+  it('uploads a file and stores its metadata', async () => {
+    const res = await uploadTestFile()
+
+    expect(res.status).toBe(201)
+    expect(res.body).toMatchObject({
+      fileName: 'report.pdf',
+      mimeType: 'application/pdf',
+      uploadedBy: 'user-id',
+    })
+    expect(res.body.s3Key).toBeDefined()
+    expect(res.body.fileSize).toBeGreaterThan(0)
+  })
+})
+
+describe('GET /api/documents', () => {
+  it('lists uploaded document metadata', async () => {
+    await uploadTestFile()
+
+    const res = await request(app).get('/api/documents').set('Authorization', `Bearer ${USER_TOKEN}`)
+
+    expect(res.status).toBe(200)
+    expect(res.body).toHaveLength(1)
+    expect(res.body[0].fileName).toBe('report.pdf')
+  })
+})
+
+describe('GET /api/documents/:id/download', () => {
+  it('returns a working presigned download URL', async () => {
+    const uploaded = await uploadTestFile()
+
+    const res = await request(app)
+      .get(`/api/documents/${uploaded.body._id}/download`)
+      .set('Authorization', `Bearer ${USER_TOKEN}`)
+
+    expect(res.status).toBe(200)
+    expect(typeof res.body.url).toBe('string')
+
+    const download = await axios.get(res.body.url)
+    expect(download.status).toBe(200)
+    expect(download.data).toContain('%PDF-1.4 test content')
+  })
+})
+
+describe('DELETE /api/documents/:id', () => {
+  it('deletes the object and its metadata', async () => {
+    const uploaded = await uploadTestFile()
+
+    const deleteRes = await request(app)
+      .delete(`/api/documents/${uploaded.body._id}`)
+      .set('Authorization', `Bearer ${USER_TOKEN}`)
+
+    expect(deleteRes.status).toBe(204)
+
+    const downloadRes = await request(app)
+      .get(`/api/documents/${uploaded.body._id}/download`)
+      .set('Authorization', `Bearer ${USER_TOKEN}`)
+
+    expect(downloadRes.status).toBe(404)
+  })
+})
+
+describe('unauthorized requests', () => {
+  it('rejects a request with no Bearer token', async () => {
+    const res = await request(app).get('/api/documents')
+    expect(res.status).toBe(401)
+  })
+})
