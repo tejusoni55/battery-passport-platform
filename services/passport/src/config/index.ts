@@ -17,4 +17,5 @@ export const config = {
   mongoUri: required('MONGO_URI'),
   authServiceUrl: process.env.AUTH_SERVICE_URL ?? 'http://auth:3001',
   kafkaBroker: process.env.KAFKA_BROKER ?? 'localhost:9092',
+  kafkaProducerRetries: Number(process.env.KAFKA_PRODUCER_RETRIES ?? 3),
 }

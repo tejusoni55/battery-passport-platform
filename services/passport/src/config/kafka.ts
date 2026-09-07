@@ -6,9 +6,9 @@ const kafka = new Kafka({
   brokers: [config.kafkaBroker],
   connectionTimeout: 1000,
   requestTimeout: 2000,
-  retry: { retries: 0 },
+  retry: { retries: config.kafkaProducerRetries },
 })
-const producer: Producer = kafka.producer({ retry: { retries: 0 } })
+const producer: Producer = kafka.producer({ retry: { retries: config.kafkaProducerRetries } })
 
 let connectPromise: Promise<void> | null = null
 

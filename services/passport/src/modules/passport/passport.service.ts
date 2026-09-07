@@ -11,7 +11,12 @@ export async function createPassport(input: PassportInput) {
   }
 
   const passport = await PassportModel.create(input)
-  void publishEvent('passport.created', { id: passport.id, batteryIdentifier: passport.batteryIdentifier })
+  void publishEvent('passport.created', {
+    passportId: passport.id,
+    batteryIdentifier: passport.batteryIdentifier,
+    eventType: 'created',
+    timestamp: new Date().toISOString(),
+  })
 
   return passport
 }
@@ -53,7 +58,12 @@ export async function deletePassport(id: string) {
     throw new ApiError(404, 'Passport not found')
   }
 
-  void publishEvent('passport.deleted', { id: passport.id, batteryIdentifier: passport.batteryIdentifier })
+  void publishEvent('passport.deleted', {
+    passportId: passport.id,
+    batteryIdentifier: passport.batteryIdentifier,
+    eventType: 'deleted',
+    timestamp: new Date().toISOString(),
+  })
 
   return passport
 }
