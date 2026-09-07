@@ -22,6 +22,9 @@ app.use((req: Request, res: Response) => {
 
 app.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {
   if (err instanceof multer.MulterError) {
+    if (err.code === "LIMIT_FILE_SIZE") {
+      return res.status(413).json({ message: "File size exceeds 20 MB limit" });
+    }
     return res.status(400).json({ message: err.message });
   }
   if (err instanceof ApiError) {

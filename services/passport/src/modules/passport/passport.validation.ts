@@ -1,3 +1,4 @@
+import type { ParsedQs } from 'qs'
 import { ApiError } from '../../utils/api-error'
 import {
   BATTERY_CATEGORIES,
@@ -21,9 +22,19 @@ export interface PaginationQuery {
   limit: number
 }
 
+// The top-level shape of a create/update request body. Everything below this
+// is an untyped fragment of the payload — read with Record<string, unknown>
+// and narrowed field-by-field by the `required*` helpers, so one small
+// interface per nested object isn't worth maintaining separately.
+interface PassportBody {
+  generalInformation?: unknown
+  materialComposition?: unknown
+  carbonFootprint?: unknown
+}
+
 const MAX_LIMIT = 100
 
-export function validatePaginationQuery(query: any): PaginationQuery {
+export function validatePaginationQuery(query: ParsedQs): PaginationQuery {
   const page = parsePositiveInt(query?.page, 1, 'page')
   const limit = parsePositiveInt(query?.limit, 10, 'limit')
 
@@ -44,7 +55,7 @@ function parsePositiveInt(value: unknown, defaultValue: number, field: string): 
   return Number(value)
 }
 
-export function validatePassportInput(data: any): PassportInput {
+export function validatePassportInput(data: PassportBody): PassportInput {
   if (typeof data !== 'object' || data === null) {
     throw new ApiError(400, 'data is required')
   }
@@ -56,63 +67,63 @@ export function validatePassportInput(data: any): PassportInput {
   }
 }
 
-function validateGeneralInformation(value: any): GeneralInformation {
+function validateGeneralInformation(value: unknown): GeneralInformation {
+  const v = value as Record<string, unknown>
   return {
-    batteryIdentifier: requiredString(value?.batteryIdentifier, 'data.generalInformation.batteryIdentifier'),
-    batteryModel: validateBatteryModel(value?.batteryModel),
-    batteryMass: requiredNumber(value?.batteryMass, 'data.generalInformation.batteryMass'),
-    batteryCategory: requiredEnum(
-      value?.batteryCategory,
-      BATTERY_CATEGORIES,
-      'data.generalInformation.batteryCategory'
-    ),
-    batteryStatus: requiredEnum(value?.batteryStatus, BATTERY_STATUSES, 'data.generalInformation.batteryStatus'),
-    manufacturingDate: requiredDate(value?.manufacturingDate, 'data.generalInformation.manufacturingDate'),
-    manufacturingPlace: requiredString(value?.manufacturingPlace, 'data.generalInformation.manufacturingPlace'),
-    warrantyPeriod: requiredString(value?.warrantyPeriod, 'data.generalInformation.warrantyPeriod'),
-    manufacturerInformation: validateManufacturerInformation(value?.manufacturerInformation),
+    batteryIdentifier: requiredString(v?.batteryIdentifier, 'data.generalInformation.batteryIdentifier'),
+    batteryModel: validateBatteryModel(v?.batteryModel),
+    batteryMass: requiredNumber(v?.batteryMass, 'data.generalInformation.batteryMass'),
+    batteryCategory: requiredEnum(v?.batteryCategory, BATTERY_CATEGORIES, 'data.generalInformation.batteryCategory'),
+    batteryStatus: requiredEnum(v?.batteryStatus, BATTERY_STATUSES, 'data.generalInformation.batteryStatus'),
+    manufacturingDate: requiredDate(v?.manufacturingDate, 'data.generalInformation.manufacturingDate'),
+    manufacturingPlace: requiredString(v?.manufacturingPlace, 'data.generalInformation.manufacturingPlace'),
+    warrantyPeriod: requiredString(v?.warrantyPeriod, 'data.generalInformation.warrantyPeriod'),
+    manufacturerInformation: validateManufacturerInformation(v?.manufacturerInformation),
   }
 }
 
-function validateBatteryModel(value: any): BatteryModelInfo {
+function validateBatteryModel(value: unknown): BatteryModelInfo {
+  const v = value as Record<string, unknown>
   return {
-    id: requiredString(value?.id, 'data.generalInformation.batteryModel.id'),
-    modelName: requiredString(value?.modelName, 'data.generalInformation.batteryModel.modelName'),
+    id: requiredString(v?.id, 'data.generalInformation.batteryModel.id'),
+    modelName: requiredString(v?.modelName, 'data.generalInformation.batteryModel.modelName'),
   }
 }
 
-function validateManufacturerInformation(value: any): ManufacturerInformation {
+function validateManufacturerInformation(value: unknown): ManufacturerInformation {
+  const v = value as Record<string, unknown>
   return {
     manufacturerName: requiredString(
-      value?.manufacturerName,
+      v?.manufacturerName,
       'data.generalInformation.manufacturerInformation.manufacturerName'
     ),
     manufacturerIdentifier: requiredString(
-      value?.manufacturerIdentifier,
+      v?.manufacturerIdentifier,
       'data.generalInformation.manufacturerInformation.manufacturerIdentifier'
     ),
   }
 }
 
-function validateMaterialComposition(value: any): MaterialComposition {
+function validateMaterialComposition(value: unknown): MaterialComposition {
+  const v = value as Record<string, unknown>
   return {
-    batteryChemistry: requiredString(value?.batteryChemistry, 'data.materialComposition.batteryChemistry'),
+    batteryChemistry: requiredString(v?.batteryChemistry, 'data.materialComposition.batteryChemistry'),
     criticalRawMaterials: validateStringArray(
-      value?.criticalRawMaterials,
+      v?.criticalRawMaterials,
       'data.materialComposition.criticalRawMaterials'
     ),
-    hazardousSubstances: validateHazardousSubstances(value?.hazardousSubstances),
+    hazardousSubstances: validateHazardousSubstances(v?.hazardousSubstances),
   }
 }
 
-function validateHazardousSubstances(value: any): HazardousSubstance[] {
+function validateHazardousSubstances(value: unknown): HazardousSubstance[] {
   if (value === undefined) {
     return []
   }
   if (!Array.isArray(value)) {
     throw new ApiError(400, 'data.materialComposition.hazardousSubstances must be an array')
   }
-  return value.map((item, index) => ({
+  return value.map((item: Record<string, unknown>, index) => ({
     substanceName: requiredString(
       item?.substanceName,
       `data.materialComposition.hazardousSubstances[${index}].substanceName`
@@ -125,15 +136,16 @@ function validateHazardousSubstances(value: any): HazardousSubstance[] {
   }))
 }
 
-function validateCarbonFootprint(value: any): CarbonFootprint {
+function validateCarbonFootprint(value: unknown): CarbonFootprint {
+  const v = value as Record<string, unknown>
   return {
-    totalCarbonFootprint: requiredNumber(value?.totalCarbonFootprint, 'data.carbonFootprint.totalCarbonFootprint'),
-    measurementUnit: requiredString(value?.measurementUnit, 'data.carbonFootprint.measurementUnit'),
-    methodology: requiredString(value?.methodology, 'data.carbonFootprint.methodology'),
+    totalCarbonFootprint: requiredNumber(v?.totalCarbonFootprint, 'data.carbonFootprint.totalCarbonFootprint'),
+    measurementUnit: requiredString(v?.measurementUnit, 'data.carbonFootprint.measurementUnit'),
+    methodology: requiredString(v?.methodology, 'data.carbonFootprint.methodology'),
   }
 }
 
-function validateStringArray(value: any, field: string): string[] {
+function validateStringArray(value: unknown, field: string): string[] {
   if (value === undefined) {
     return []
   }

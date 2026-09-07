@@ -71,6 +71,20 @@ describe('POST /api/documents/upload', () => {
   })
 })
 
+describe('POST /api/documents/upload - size limit', () => {
+  it('rejects a file over 20 MB with 413', async () => {
+    const oversizedBuffer = Buffer.alloc(20 * 1024 * 1024 + 1)
+
+    const res = await request(app)
+      .post('/api/documents/upload')
+      .set('Authorization', `Bearer ${USER_TOKEN}`)
+      .attach('file', oversizedBuffer, { filename: 'huge.pdf', contentType: 'application/pdf' })
+
+    expect(res.status).toBe(413)
+    expect(res.body).toEqual({ message: 'File size exceeds 20 MB limit' })
+  })
+})
+
 describe('GET /api/documents', () => {
   it('lists uploaded document metadata', async () => {
     await uploadTestFile()

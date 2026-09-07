@@ -15,7 +15,18 @@ export interface LoginInput {
   password: string
 }
 
-export function validateRegister(body: any): RegisterInput {
+interface RegisterBody {
+  email?: unknown
+  password?: unknown
+  role?: unknown
+}
+
+interface LoginBody {
+  email?: unknown
+  password?: unknown
+}
+
+export function validateRegister(body: RegisterBody): RegisterInput {
   const email = readEmail(body?.email)
   const password = typeof body?.password === 'string' ? body.password : ''
   const role = body?.role
@@ -23,14 +34,14 @@ export function validateRegister(body: any): RegisterInput {
   if (password.length < 8) {
     throw new ApiError(400, 'Password must be at least 8 characters')
   }
-  if (!ROLES.includes(role)) {
+  if (!ROLES.includes(role as UserRole)) {
     throw new ApiError(400, "Role must be either 'admin' or 'user'")
   }
 
-  return { email, password, role }
+  return { email, password, role: role as UserRole }
 }
 
-export function validateLogin(body: any): LoginInput {
+export function validateLogin(body: LoginBody): LoginInput {
   const email = readEmail(body?.email)
   const password = typeof body?.password === 'string' ? body.password : ''
 
