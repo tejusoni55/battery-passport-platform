@@ -3,115 +3,133 @@ import { Schema, model } from 'mongoose'
 export const BATTERY_CATEGORIES = ['LMT', 'EV', 'industrial', 'automotive', 'stationary_storage'] as const
 export type BatteryCategory = (typeof BATTERY_CATEGORIES)[number]
 
-export const BATTERY_STATUSES = ['active', 'second_life', 'recycled', 'disposed'] as const
+export const BATTERY_STATUSES = ['Original', 'active', 'second_life', 'recycled', 'disposed'] as const
 export type BatteryStatus = (typeof BATTERY_STATUSES)[number]
 
 export interface BatteryModelInfo {
+  id: string
   modelName: string
-  modelNumber: string
 }
 
-export interface Manufacturer {
-  name: string
-  address: string
-  contact: string
+export interface ManufacturerInformation {
+  manufacturerName: string
+  manufacturerIdentifier: string
+}
+
+export interface GeneralInformation {
+  batteryIdentifier: string
+  batteryModel: BatteryModelInfo
+  batteryMass: number
+  batteryCategory: BatteryCategory
+  batteryStatus: BatteryStatus
+  manufacturingDate: Date
+  manufacturingPlace: string
+  warrantyPeriod: string
+  manufacturerInformation: ManufacturerInformation
 }
 
 export interface HazardousSubstance {
-  name: string
+  substanceName: string
+  chemicalFormula: string
   casNumber: string
-  concentration: number
 }
 
-export interface CarbonFootprint {
-  totalCo2Kg: number
-  methodology: string
-  calculatedAt: Date
-}
-
-export interface Circularity {
-  recycledContentPercentage: number
-  recyclabilityPercentage: number
-  expectedLifetimeYears: number
-}
-
-export interface PassportDocument {
-  batteryIdentifier: string
-  batteryCategory: BatteryCategory
-  batteryStatus: BatteryStatus
-  batteryModel: BatteryModelInfo
-  manufacturer: Manufacturer
-  manufacturingDate: Date
-  batteryMass: number
+export interface MaterialComposition {
   batteryChemistry: string
   criticalRawMaterials: string[]
   hazardousSubstances: HazardousSubstance[]
+}
+
+export interface CarbonFootprint {
+  totalCarbonFootprint: number
+  measurementUnit: string
+  methodology: string
+}
+
+export interface PassportDocument {
+  generalInformation: GeneralInformation
+  materialComposition: MaterialComposition
   carbonFootprint: CarbonFootprint
-  circularity: Circularity
   createdAt: Date
   updatedAt: Date
 }
 
 const batteryModelSchema = new Schema<BatteryModelInfo>(
   {
+    id: { type: String, required: true, trim: true },
     modelName: { type: String, required: true, trim: true },
-    modelNumber: { type: String, required: true, trim: true },
   },
   { _id: false }
 )
 
-const manufacturerSchema = new Schema<Manufacturer>(
+const manufacturerInformationSchema = new Schema<ManufacturerInformation>(
   {
-    name: { type: String, required: true, trim: true },
-    address: { type: String, required: true, trim: true },
-    contact: { type: String, required: true, trim: true },
+    manufacturerName: { type: String, required: true, trim: true },
+    manufacturerIdentifier: { type: String, required: true, trim: true },
+  },
+  { _id: false }
+)
+
+const generalInformationSchema = new Schema<GeneralInformation>(
+  {
+    batteryIdentifier: { type: String, required: true, trim: true },
+    batteryModel: { type: batteryModelSchema, required: true },
+    batteryMass: { type: Number, required: true, min: 0 },
+    batteryCategory: { type: String, enum: BATTERY_CATEGORIES, required: true },
+    batteryStatus: { type: String, enum: BATTERY_STATUSES, required: true },
+    manufacturingDate: { type: Date, required: true },
+    manufacturingPlace: { type: String, required: true, trim: true },
+    warrantyPeriod: { type: String, required: true, trim: true },
+    manufacturerInformation: { type: manufacturerInformationSchema, required: true },
   },
   { _id: false }
 )
 
 const hazardousSubstanceSchema = new Schema<HazardousSubstance>(
   {
-    name: { type: String, required: true, trim: true },
+    substanceName: { type: String, required: true, trim: true },
+    chemicalFormula: { type: String, required: true, trim: true },
     casNumber: { type: String, required: true, trim: true },
-    concentration: { type: Number, required: true, min: 0 },
+  },
+  { _id: false }
+)
+
+const materialCompositionSchema = new Schema<MaterialComposition>(
+  {
+    batteryChemistry: { type: String, required: true, trim: true },
+    criticalRawMaterials: { type: [String], default: [] },
+    hazardousSubstances: { type: [hazardousSubstanceSchema], default: [] },
   },
   { _id: false }
 )
 
 const carbonFootprintSchema = new Schema<CarbonFootprint>(
   {
-    totalCo2Kg: { type: Number, required: true, min: 0 },
+    totalCarbonFootprint: { type: Number, required: true, min: 0 },
+    measurementUnit: { type: String, required: true, trim: true },
     methodology: { type: String, required: true, trim: true },
-    calculatedAt: { type: Date, required: true },
-  },
-  { _id: false }
-)
-
-const circularitySchema = new Schema<Circularity>(
-  {
-    recycledContentPercentage: { type: Number, required: true, min: 0, max: 100 },
-    recyclabilityPercentage: { type: Number, required: true, min: 0, max: 100 },
-    expectedLifetimeYears: { type: Number, required: true, min: 0 },
   },
   { _id: false }
 )
 
 const passportSchema = new Schema<PassportDocument>(
   {
-    batteryIdentifier: { type: String, required: true, unique: true, trim: true },
-    batteryCategory: { type: String, enum: BATTERY_CATEGORIES, required: true },
-    batteryStatus: { type: String, enum: BATTERY_STATUSES, required: true },
-    batteryModel: { type: batteryModelSchema, required: true },
-    manufacturer: { type: manufacturerSchema, required: true },
-    manufacturingDate: { type: Date, required: true },
-    batteryMass: { type: Number, required: true, min: 0 },
-    batteryChemistry: { type: String, required: true, trim: true },
-    criticalRawMaterials: { type: [String], default: [] },
-    hazardousSubstances: { type: [hazardousSubstanceSchema], default: [] },
+    generalInformation: { type: generalInformationSchema, required: true },
+    materialComposition: { type: materialCompositionSchema, required: true },
     carbonFootprint: { type: carbonFootprintSchema, required: true },
-    circularity: { type: circularitySchema, required: true },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: {
+      transform: (_doc, ret: Record<string, any>) => {
+        ret.id = ret._id.toString()
+        delete ret._id
+        delete ret.__v
+      },
+    },
+  }
 )
+
+passportSchema.index({ 'generalInformation.batteryIdentifier': 1 }, { unique: true })
 
 export const PassportModel = model<PassportDocument>('Passport', passportSchema)

@@ -13,6 +13,17 @@
     "dev:passport": "npm run dev -w @battery-passport/passport",
     "dev:document": "npm run dev -w @battery-passport/document",
     "dev:notification": "npm run dev -w @battery-passport/notification",
-    "build": "npm run build --workspaces"
+    "build": "npm run build --workspaces",
+    "test": "npm run test --workspaces",
+    "test:auth": "npm run test -w @battery-passport/auth",
+    "test:passport": "npm run test -w @battery-passport/passport",
+    "test:document": "npm run test -w @battery-passport/document",
+    "test:notification": "npm run test -w @battery-passport/notification",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
+  },
+  "devDependencies": {
+    "eslint": "^9.39.5",
+    "typescript-eslint": "^8.69.0"
   }
 }

@@ -1,16 +1,29 @@
-import axios from 'axios'
 import mongoose from 'mongoose'
 import nock from 'nock'
 import request from 'supertest'
+
+// Mock only the MinIO layer, not the Document service — no real S3 client is
+// ever constructed, so tests never touch the network or require a running MinIO.
+const putObjectMock = jest.fn().mockResolvedValue(undefined)
+const deleteObjectMock = jest.fn().mockResolvedValue(undefined)
+const getPresignedDownloadUrlMock = jest
+  .fn()
+  .mockImplementation((key: string) => Promise.resolve(`https://minio.test/documents-test/${key}`))
+
+jest.mock('../src/config/minio', () => ({
+  ensureBucket: jest.fn().mockResolvedValue(undefined),
+  putObject: (...args: unknown[]) => putObjectMock(...args),
+  deleteObject: (...args: unknown[]) => deleteObjectMock(...args),
+  getPresignedDownloadUrl: (...args: unknown[]) => getPresignedDownloadUrlMock(...args),
+}))
+
 import { app } from '../src/app'
 import { config } from '../src/config'
-import { ensureBucket } from '../src/config/minio'
 
 const USER_TOKEN = 'user-token'
 
 beforeAll(async () => {
   await mongoose.connect(config.mongoUri)
-  await ensureBucket()
 
   nock(config.authServiceUrl)
     .persist()
@@ -71,19 +84,16 @@ describe('GET /api/documents', () => {
 })
 
 describe('GET /api/documents/:id/download', () => {
-  it('returns a working presigned download URL', async () => {
+  it('returns a presigned download URL for the uploaded object', async () => {
     const uploaded = await uploadTestFile()
 
     const res = await request(app)
-      .get(`/api/documents/${uploaded.body._id}/download`)
+      .get(`/api/documents/${uploaded.body.id}/download`)
       .set('Authorization', `Bearer ${USER_TOKEN}`)
 
     expect(res.status).toBe(200)
     expect(typeof res.body.url).toBe('string')
-
-    const download = await axios.get(res.body.url)
-    expect(download.status).toBe(200)
-    expect(download.data).toContain('%PDF-1.4 test content')
+    expect(getPresignedDownloadUrlMock).toHaveBeenCalledWith(uploaded.body.s3Key)
   })
 })
 
@@ -92,13 +102,13 @@ describe('DELETE /api/documents/:id', () => {
     const uploaded = await uploadTestFile()
 
     const deleteRes = await request(app)
-      .delete(`/api/documents/${uploaded.body._id}`)
+      .delete(`/api/documents/${uploaded.body.id}`)
       .set('Authorization', `Bearer ${USER_TOKEN}`)
 
     expect(deleteRes.status).toBe(204)
 
     const downloadRes = await request(app)
-      .get(`/api/documents/${uploaded.body._id}/download`)
+      .get(`/api/documents/${uploaded.body.id}/download`)
       .set('Authorization', `Bearer ${USER_TOKEN}`)
 
     expect(downloadRes.status).toBe(404)

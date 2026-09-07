@@ -15,7 +15,7 @@ export const config = {
   serviceName: process.env.PASSPORT_SERVICE_NAME ?? 'passport',
   port: Number(process.env.PASSPORT_PORT ?? 3002),
   mongoUri: required('MONGO_URI'),
-  authServiceUrl: process.env.AUTH_SERVICE_URL ?? 'http://auth:3001',
+  authServiceUrl: required('AUTH_SERVICE_URL'),
   kafkaBroker: process.env.KAFKA_BROKER ?? 'localhost:9092',
   kafkaProducerRetries: Number(process.env.KAFKA_PRODUCER_RETRIES ?? 3),
 }

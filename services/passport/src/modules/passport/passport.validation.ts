@@ -2,70 +2,78 @@ import { ApiError } from '../../utils/api-error'
 import {
   BATTERY_CATEGORIES,
   BATTERY_STATUSES,
-  BatteryCategory,
-  BatteryStatus,
+  BatteryModelInfo,
   CarbonFootprint,
-  Circularity,
+  GeneralInformation,
   HazardousSubstance,
+  ManufacturerInformation,
+  MaterialComposition,
 } from './passport.model'
 
 export interface PassportInput {
-  batteryIdentifier: string
-  batteryCategory: BatteryCategory
-  batteryStatus: BatteryStatus
-  batteryModel: { modelName: string; modelNumber: string }
-  manufacturer: { name: string; address: string; contact: string }
-  manufacturingDate: Date
-  batteryMass: number
-  batteryChemistry: string
-  criticalRawMaterials: string[]
-  hazardousSubstances: HazardousSubstance[]
+  generalInformation: GeneralInformation
+  materialComposition: MaterialComposition
   carbonFootprint: CarbonFootprint
-  circularity: Circularity
 }
 
-export function validatePassportInput(body: any): PassportInput {
-  const batteryIdentifier = requiredString(body?.batteryIdentifier, 'batteryIdentifier')
-  const batteryCategory = requiredEnum(body?.batteryCategory, BATTERY_CATEGORIES, 'batteryCategory')
-  const batteryStatus = requiredEnum(body?.batteryStatus, BATTERY_STATUSES, 'batteryStatus')
-  const batteryModel = validateBatteryModel(body?.batteryModel)
-  const manufacturer = validateManufacturer(body?.manufacturer)
-  const manufacturingDate = requiredDate(body?.manufacturingDate, 'manufacturingDate')
-  const batteryMass = requiredNumber(body?.batteryMass, 'batteryMass')
-  const batteryChemistry = requiredString(body?.batteryChemistry, 'batteryChemistry')
-  const criticalRawMaterials = validateStringArray(body?.criticalRawMaterials, 'criticalRawMaterials')
-  const hazardousSubstances = validateHazardousSubstances(body?.hazardousSubstances)
-  const carbonFootprint = validateCarbonFootprint(body?.carbonFootprint)
-  const circularity = validateCircularity(body?.circularity)
+export function validatePassportInput(data: any): PassportInput {
+  if (typeof data !== 'object' || data === null) {
+    throw new ApiError(400, 'data is required')
+  }
 
   return {
-    batteryIdentifier,
-    batteryCategory,
-    batteryStatus,
-    batteryModel,
-    manufacturer,
-    manufacturingDate,
-    batteryMass,
-    batteryChemistry,
-    criticalRawMaterials,
-    hazardousSubstances,
-    carbonFootprint,
-    circularity,
+    generalInformation: validateGeneralInformation(data.generalInformation),
+    materialComposition: validateMaterialComposition(data.materialComposition),
+    carbonFootprint: validateCarbonFootprint(data.carbonFootprint),
   }
 }
 
-function validateBatteryModel(value: any): { modelName: string; modelNumber: string } {
+function validateGeneralInformation(value: any): GeneralInformation {
   return {
-    modelName: requiredString(value?.modelName, 'batteryModel.modelName'),
-    modelNumber: requiredString(value?.modelNumber, 'batteryModel.modelNumber'),
+    batteryIdentifier: requiredString(value?.batteryIdentifier, 'data.generalInformation.batteryIdentifier'),
+    batteryModel: validateBatteryModel(value?.batteryModel),
+    batteryMass: requiredNumber(value?.batteryMass, 'data.generalInformation.batteryMass'),
+    batteryCategory: requiredEnum(
+      value?.batteryCategory,
+      BATTERY_CATEGORIES,
+      'data.generalInformation.batteryCategory'
+    ),
+    batteryStatus: requiredEnum(value?.batteryStatus, BATTERY_STATUSES, 'data.generalInformation.batteryStatus'),
+    manufacturingDate: requiredDate(value?.manufacturingDate, 'data.generalInformation.manufacturingDate'),
+    manufacturingPlace: requiredString(value?.manufacturingPlace, 'data.generalInformation.manufacturingPlace'),
+    warrantyPeriod: requiredString(value?.warrantyPeriod, 'data.generalInformation.warrantyPeriod'),
+    manufacturerInformation: validateManufacturerInformation(value?.manufacturerInformation),
   }
 }
 
-function validateManufacturer(value: any): { name: string; address: string; contact: string } {
+function validateBatteryModel(value: any): BatteryModelInfo {
   return {
-    name: requiredString(value?.name, 'manufacturer.name'),
-    address: requiredString(value?.address, 'manufacturer.address'),
-    contact: requiredString(value?.contact, 'manufacturer.contact'),
+    id: requiredString(value?.id, 'data.generalInformation.batteryModel.id'),
+    modelName: requiredString(value?.modelName, 'data.generalInformation.batteryModel.modelName'),
+  }
+}
+
+function validateManufacturerInformation(value: any): ManufacturerInformation {
+  return {
+    manufacturerName: requiredString(
+      value?.manufacturerName,
+      'data.generalInformation.manufacturerInformation.manufacturerName'
+    ),
+    manufacturerIdentifier: requiredString(
+      value?.manufacturerIdentifier,
+      'data.generalInformation.manufacturerInformation.manufacturerIdentifier'
+    ),
+  }
+}
+
+function validateMaterialComposition(value: any): MaterialComposition {
+  return {
+    batteryChemistry: requiredString(value?.batteryChemistry, 'data.materialComposition.batteryChemistry'),
+    criticalRawMaterials: validateStringArray(
+      value?.criticalRawMaterials,
+      'data.materialComposition.criticalRawMaterials'
+    ),
+    hazardousSubstances: validateHazardousSubstances(value?.hazardousSubstances),
   }
 }
 
@@ -74,31 +82,26 @@ function validateHazardousSubstances(value: any): HazardousSubstance[] {
     return []
   }
   if (!Array.isArray(value)) {
-    throw new ApiError(400, 'hazardousSubstances must be an array')
+    throw new ApiError(400, 'data.materialComposition.hazardousSubstances must be an array')
   }
   return value.map((item, index) => ({
-    name: requiredString(item?.name, `hazardousSubstances[${index}].name`),
-    casNumber: requiredString(item?.casNumber, `hazardousSubstances[${index}].casNumber`),
-    concentration: requiredNumber(item?.concentration, `hazardousSubstances[${index}].concentration`),
+    substanceName: requiredString(
+      item?.substanceName,
+      `data.materialComposition.hazardousSubstances[${index}].substanceName`
+    ),
+    chemicalFormula: requiredString(
+      item?.chemicalFormula,
+      `data.materialComposition.hazardousSubstances[${index}].chemicalFormula`
+    ),
+    casNumber: requiredString(item?.casNumber, `data.materialComposition.hazardousSubstances[${index}].casNumber`),
   }))
 }
 
 function validateCarbonFootprint(value: any): CarbonFootprint {
   return {
-    totalCo2Kg: requiredNumber(value?.totalCo2Kg, 'carbonFootprint.totalCo2Kg'),
-    methodology: requiredString(value?.methodology, 'carbonFootprint.methodology'),
-    calculatedAt: requiredDate(value?.calculatedAt, 'carbonFootprint.calculatedAt'),
-  }
-}
-
-function validateCircularity(value: any): Circularity {
-  return {
-    recycledContentPercentage: requiredNumber(
-      value?.recycledContentPercentage,
-      'circularity.recycledContentPercentage'
-    ),
-    recyclabilityPercentage: requiredNumber(value?.recyclabilityPercentage, 'circularity.recyclabilityPercentage'),
-    expectedLifetimeYears: requiredNumber(value?.expectedLifetimeYears, 'circularity.expectedLifetimeYears'),
+    totalCarbonFootprint: requiredNumber(value?.totalCarbonFootprint, 'data.carbonFootprint.totalCarbonFootprint'),
+    measurementUnit: requiredString(value?.measurementUnit, 'data.carbonFootprint.measurementUnit'),
+    methodology: requiredString(value?.methodology, 'data.carbonFootprint.methodology'),
   }
 }
 
@@ -127,10 +130,10 @@ function requiredNumber(value: unknown, field: string): number {
 }
 
 function requiredDate(value: unknown, field: string): Date {
-  const date = new Date(value as string)
   if (typeof value !== 'string' && typeof value !== 'number') {
     throw new ApiError(400, `${field} is required`)
   }
+  const date = new Date(value)
   if (Number.isNaN(date.getTime())) {
     throw new ApiError(400, `${field} must be a valid date`)
   }

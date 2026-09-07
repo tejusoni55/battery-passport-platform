@@ -4,7 +4,7 @@ import { validatePassportInput } from './passport.validation'
 
 export async function create(req: Request, res: Response, next: NextFunction) {
   try {
-    const input = validatePassportInput(req.body)
+    const input = validatePassportInput(req.body?.data)
     const passport = await createPassport(input)
     res.status(201).json(passport)
   } catch (err) {
@@ -32,7 +32,7 @@ export async function getOne(req: Request, res: Response, next: NextFunction) {
 
 export async function update(req: Request, res: Response, next: NextFunction) {
   try {
-    const input = validatePassportInput(req.body)
+    const input = validatePassportInput(req.body?.data)
     const passport = await updatePassport(req.params.id, input)
     res.json(passport)
   } catch (err) {

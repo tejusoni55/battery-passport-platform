@@ -45,7 +45,7 @@ export async function authenticate(req: Request, _res: Response, next: NextFunct
 
 export function requireAdmin(req: Request, _res: Response, next: NextFunction) {
   if (req.user?.role !== 'admin') {
-    return next(new ApiError(403, 'Admin role required'))
+    return next(new ApiError(403, 'You are not authorized to perform this action'))
   }
   next()
 }

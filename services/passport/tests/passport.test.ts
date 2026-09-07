@@ -1,6 +1,14 @@
 import mongoose from 'mongoose'
 import nock from 'nock'
 import request from 'supertest'
+
+// Mock only the Kafka publish layer, not the Passport service — no real
+// kafkajs client is ever constructed, so tests never touch the network.
+jest.mock('../src/config/kafka', () => ({
+  publishEvent: jest.fn().mockResolvedValue(undefined),
+  disconnectProducer: jest.fn().mockResolvedValue(undefined),
+}))
+
 import { app } from '../src/app'
 import { config } from '../src/config'
 import { disconnectProducer } from '../src/config/kafka'
@@ -36,21 +44,40 @@ afterAll(async () => {
   await mongoose.connection.close()
 })
 
-function buildPassportPayload(overrides: Record<string, unknown> = {}) {
+function buildPassportPayload(overrides: { batteryIdentifier?: string; batteryStatus?: string } = {}) {
   return {
-    batteryIdentifier: 'BATT-0001',
-    batteryCategory: 'EV',
-    batteryStatus: 'active',
-    batteryModel: { modelName: 'PowerCell X1', modelNumber: 'PCX1-100' },
-    manufacturer: { name: 'Acme Batteries', address: '1 Industrial Way', contact: 'ops@acme.example' },
-    manufacturingDate: '2026-01-15',
-    batteryMass: 42.5,
-    batteryChemistry: 'NMC',
-    criticalRawMaterials: ['cobalt', 'lithium'],
-    hazardousSubstances: [{ name: 'Lead', casNumber: '7439-92-1', concentration: 0.01 }],
-    carbonFootprint: { totalCo2Kg: 120.5, methodology: 'PEFCR', calculatedAt: '2026-01-10' },
-    circularity: { recycledContentPercentage: 15, recyclabilityPercentage: 80, expectedLifetimeYears: 10 },
-    ...overrides,
+    data: {
+      generalInformation: {
+        batteryIdentifier: overrides.batteryIdentifier ?? 'BP-2024-011',
+        batteryModel: { id: 'LM3-BAT-2024', modelName: 'GMC WZX1' },
+        batteryMass: 450,
+        batteryCategory: 'EV',
+        batteryStatus: overrides.batteryStatus ?? 'Original',
+        manufacturingDate: '2024-01-15',
+        manufacturingPlace: 'Gigafactory Nevada',
+        warrantyPeriod: '8',
+        manufacturerInformation: {
+          manufacturerName: 'Tesla Inc',
+          manufacturerIdentifier: 'TESLA-001',
+        },
+      },
+      materialComposition: {
+        batteryChemistry: 'LiFePO4',
+        criticalRawMaterials: ['Lithium', 'Iron'],
+        hazardousSubstances: [
+          {
+            substanceName: 'Lithium Hexafluorophosphate',
+            chemicalFormula: 'LiPF6',
+            casNumber: '21324-40-3',
+          },
+        ],
+      },
+      carbonFootprint: {
+        totalCarbonFootprint: 850,
+        measurementUnit: 'kg CO2e',
+        methodology: 'Life Cycle Assessment (LCA)',
+      },
+    },
   }
 }
 
@@ -62,8 +89,14 @@ describe('POST /api/passports', () => {
       .send(buildPassportPayload())
 
     expect(res.status).toBe(201)
-    expect(res.body).toMatchObject({ batteryIdentifier: 'BATT-0001', batteryCategory: 'EV' })
-    expect(res.body._id).toBeDefined()
+    expect(res.body.generalInformation).toMatchObject({
+      batteryIdentifier: 'BP-2024-011',
+      batteryCategory: 'EV',
+      batteryStatus: 'Original',
+    })
+    expect(res.body.materialComposition.batteryChemistry).toBe('LiFePO4')
+    expect(res.body.carbonFootprint.totalCarbonFootprint).toBe(850)
+    expect(res.body.id).toBeDefined()
   })
 
   it('rejects a duplicate batteryIdentifier with 409', async () => {
@@ -88,6 +121,15 @@ describe('POST /api/passports', () => {
 
     expect(res.status).toBe(403)
   })
+
+  it('rejects an invalid payload with 400, not 500', async () => {
+    const res = await request(app)
+      .post('/api/passports')
+      .set('Authorization', `Bearer ${ADMIN_TOKEN}`)
+      .send({ data: {} })
+
+    expect(res.status).toBe(400)
+  })
 })
 
 describe('GET /api/passports', () => {
@@ -95,12 +137,12 @@ describe('GET /api/passports', () => {
     await request(app)
       .post('/api/passports')
       .set('Authorization', `Bearer ${ADMIN_TOKEN}`)
-      .send(buildPassportPayload({ batteryIdentifier: 'BATT-0001' }))
+      .send(buildPassportPayload({ batteryIdentifier: 'BP-2024-011' }))
 
     await request(app)
       .post('/api/passports')
       .set('Authorization', `Bearer ${ADMIN_TOKEN}`)
-      .send(buildPassportPayload({ batteryIdentifier: 'BATT-0002' }))
+      .send(buildPassportPayload({ batteryIdentifier: 'BP-2024-012' }))
 
     const res = await request(app).get('/api/passports').set('Authorization', `Bearer ${USER_TOKEN}`)
 
@@ -117,11 +159,11 @@ describe('GET /api/passports/:id', () => {
       .send(buildPassportPayload())
 
     const res = await request(app)
-      .get(`/api/passports/${created.body._id}`)
+      .get(`/api/passports/${created.body.id}`)
       .set('Authorization', `Bearer ${USER_TOKEN}`)
 
     expect(res.status).toBe(200)
-    expect(res.body.batteryIdentifier).toBe('BATT-0001')
+    expect(res.body.generalInformation.batteryIdentifier).toBe('BP-2024-011')
   })
 
   it('returns 404 for a missing passport', async () => {
@@ -143,12 +185,12 @@ describe('PUT /api/passports/:id', () => {
       .send(buildPassportPayload())
 
     const res = await request(app)
-      .put(`/api/passports/${created.body._id}`)
+      .put(`/api/passports/${created.body.id}`)
       .set('Authorization', `Bearer ${ADMIN_TOKEN}`)
       .send(buildPassportPayload({ batteryStatus: 'second_life' }))
 
     expect(res.status).toBe(200)
-    expect(res.body.batteryStatus).toBe('second_life')
+    expect(res.body.generalInformation.batteryStatus).toBe('second_life')
   })
 })
 
@@ -160,13 +202,13 @@ describe('DELETE /api/passports/:id', () => {
       .send(buildPassportPayload())
 
     const deleteRes = await request(app)
-      .delete(`/api/passports/${created.body._id}`)
+      .delete(`/api/passports/${created.body.id}`)
       .set('Authorization', `Bearer ${ADMIN_TOKEN}`)
 
     expect(deleteRes.status).toBe(204)
 
     const getRes = await request(app)
-      .get(`/api/passports/${created.body._id}`)
+      .get(`/api/passports/${created.body.id}`)
       .set('Authorization', `Bearer ${USER_TOKEN}`)
 
     expect(getRes.status).toBe(404)

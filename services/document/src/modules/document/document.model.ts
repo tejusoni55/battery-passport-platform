@@ -18,7 +18,16 @@ const documentSchema = new Schema<DocumentRecord>(
     s3Key: { type: String, required: true, unique: true },
     uploadedBy: { type: String, required: true },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: {
+      transform: (_doc, ret: Record<string, any>) => {
+        ret.id = ret._id.toString()
+        delete ret._id
+        delete ret.__v
+      },
+    },
+  }
 )
 
 export const DocumentModel = model<DocumentRecord>('Document', documentSchema)

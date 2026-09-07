@@ -5,7 +5,9 @@ import { PassportModel } from './passport.model'
 import { PassportInput } from './passport.validation'
 
 export async function createPassport(input: PassportInput) {
-  const existing = await PassportModel.findOne({ batteryIdentifier: input.batteryIdentifier })
+  const existing = await PassportModel.findOne({
+    'generalInformation.batteryIdentifier': input.generalInformation.batteryIdentifier,
+  })
   if (existing) {
     throw new ApiError(409, 'A passport with this battery identifier already exists')
   }
@@ -13,7 +15,7 @@ export async function createPassport(input: PassportInput) {
   const passport = await PassportModel.create(input)
   void publishEvent('passport.created', {
     passportId: passport.id,
-    batteryIdentifier: passport.batteryIdentifier,
+    batteryIdentifier: passport.generalInformation.batteryIdentifier,
     eventType: 'created',
     timestamp: new Date().toISOString(),
   })
@@ -39,8 +41,10 @@ export async function updatePassport(id: string, input: PassportInput) {
     throw new ApiError(404, 'Passport not found')
   }
 
-  if (input.batteryIdentifier !== passport.batteryIdentifier) {
-    const existing = await PassportModel.findOne({ batteryIdentifier: input.batteryIdentifier })
+  if (input.generalInformation.batteryIdentifier !== passport.generalInformation.batteryIdentifier) {
+    const existing = await PassportModel.findOne({
+      'generalInformation.batteryIdentifier': input.generalInformation.batteryIdentifier,
+    })
     if (existing) {
       throw new ApiError(409, 'A passport with this battery identifier already exists')
     }
@@ -60,7 +64,7 @@ export async function deletePassport(id: string) {
 
   void publishEvent('passport.deleted', {
     passportId: passport.id,
-    batteryIdentifier: passport.batteryIdentifier,
+    batteryIdentifier: passport.generalInformation.batteryIdentifier,
     eventType: 'deleted',
     timestamp: new Date().toISOString(),
   })
