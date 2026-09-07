@@ -5,6 +5,7 @@ import { config } from "./config";
 import { ensureBucket } from "./config/minio";
 import { documentRoutes } from "./modules/document/document.routes";
 import { ApiError } from "./utils/api-error";
+import { errorMeta, logger } from "./utils/logger";
 
 const app = express();
 
@@ -33,17 +34,17 @@ app.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {
   if ((err as { type?: string })?.type === "entity.parse.failed") {
     return res.status(400).json({ message: "Malformed JSON body" });
   }
-  console.error(err);
+  logger.error("Unhandled error", errorMeta(err));
   return res.status(500).json({ message: "Internal server error" });
 });
 
 async function start() {
   await mongoose.connect(config.mongoUri);
-  console.log("document service connected to mongodb");
+  logger.info("document service connected to mongodb");
   await ensureBucket();
-  console.log("document service connected to minio");
+  logger.info("document service connected to minio");
   app.listen(config.port, () => {
-    console.log(`${config.serviceName} service running on port ${config.port}`);
+    logger.info(`${config.serviceName} service running on port ${config.port}`);
   });
 }
 
@@ -51,7 +52,7 @@ export { app };
 
 if (require.main === module) {
   start().catch((err) => {
-    console.error("failed to start document service", err);
+    logger.error("failed to start document service", errorMeta(err));
     process.exit(1);
   });
 }

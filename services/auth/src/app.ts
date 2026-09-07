@@ -3,6 +3,7 @@ import { config } from "./config";
 import { connectDatabase } from "./config/db";
 import { authRoutes } from "./modules/auth/auth.routes";
 import { ApiError } from "./utils/api-error";
+import { errorMeta, logger } from "./utils/logger";
 
 const app = express();
 
@@ -25,14 +26,14 @@ app.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {
   if ((err as { type?: string })?.type === "entity.parse.failed") {
     return res.status(400).json({ message: "Malformed JSON body" });
   }
-  console.error(err);
+  logger.error("Unhandled error", errorMeta(err));
   return res.status(500).json({ message: "Internal server error" });
 });
 
 async function start() {
   await connectDatabase();
   app.listen(config.port, () => {
-    console.log(`${config.serviceName} service running on port ${config.port}`);
+    logger.info(`${config.serviceName} service running on port ${config.port}`);
   });
 }
 
@@ -40,7 +41,7 @@ export { app };
 
 if (require.main === module) {
   start().catch((err) => {
-    console.error("failed to start auth service", err);
+    logger.error("failed to start auth service", errorMeta(err));
     process.exit(1);
   });
 }

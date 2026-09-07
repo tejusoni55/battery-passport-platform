@@ -19,6 +19,7 @@ jest.mock('../src/config/minio', () => ({
 
 import { app } from '../src/app'
 import { config } from '../src/config'
+import { DocumentModel } from '../src/modules/document/document.model'
 
 const USER_TOKEN = 'user-token'
 
@@ -81,6 +82,20 @@ describe('POST /api/documents/upload', () => {
 
     expect(res.status).toBe(400)
     expect(res.body).toEqual({ message: 'Malformed JSON body' })
+  })
+})
+
+describe('POST /api/documents/upload - orphan cleanup', () => {
+  it('deletes the uploaded object if saving its metadata fails', async () => {
+    const createSpy = jest.spyOn(DocumentModel, 'create').mockRejectedValueOnce(new Error('db unavailable'))
+
+    const res = await uploadTestFile()
+
+    expect(res.status).toBe(500)
+    const uploadedKey = putObjectMock.mock.calls[putObjectMock.mock.calls.length - 1][0]
+    expect(deleteObjectMock).toHaveBeenCalledWith(uploadedKey)
+
+    createSpy.mockRestore()
   })
 })
 

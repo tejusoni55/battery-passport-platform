@@ -4,6 +4,7 @@ import { config } from "./config";
 import { PassportModel } from "./modules/passport/passport.model";
 import { passportRoutes } from "./modules/passport/passport.routes";
 import { ApiError } from "./utils/api-error";
+import { errorMeta, logger } from "./utils/logger";
 
 const app = express();
 
@@ -26,21 +27,21 @@ app.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {
   if ((err as { type?: string })?.type === "entity.parse.failed") {
     return res.status(400).json({ message: "Malformed JSON body" });
   }
-  console.error(err);
+  logger.error("Unhandled error", errorMeta(err));
   return res.status(500).json({ message: "Internal server error" });
 });
 
 async function start() {
   await mongoose.connect(config.mongoUri);
-  console.log("passport service connected to mongodb");
+  logger.info("passport service connected to mongodb");
   // Reconciles indexes with the current schema so a stale index from a prior
   // schema (e.g. a since-renamed/relocated unique field) doesn't linger and
   // break inserts — Mongoose only adds missing indexes on its own, it never
   // drops obsolete ones.
   await PassportModel.syncIndexes();
-  console.log("passport indexes synchronized");
+  logger.info("passport indexes synchronized");
   app.listen(config.port, () => {
-    console.log(`${config.serviceName} service running on port ${config.port}`);
+    logger.info(`${config.serviceName} service running on port ${config.port}`);
   });
 }
 
@@ -48,7 +49,7 @@ export { app };
 
 if (require.main === module) {
   start().catch((err) => {
-    console.error("failed to start passport service", err);
+    logger.error("failed to start passport service", errorMeta(err));
     process.exit(1);
   });
 }

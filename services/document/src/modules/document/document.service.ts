@@ -9,13 +9,20 @@ export async function uploadDocument(file: Express.Multer.File, uploadedBy: stri
   const s3Key = `${randomUUID()}${path.extname(file.originalname)}`
   await putObject(s3Key, file.buffer, file.mimetype)
 
-  return DocumentModel.create({
-    fileName: file.originalname,
-    mimeType: file.mimetype,
-    fileSize: file.size,
-    s3Key,
-    uploadedBy,
-  })
+  try {
+    return await DocumentModel.create({
+      fileName: file.originalname,
+      mimeType: file.mimetype,
+      fileSize: file.size,
+      s3Key,
+      uploadedBy,
+    })
+  } catch (err) {
+    // The upload already succeeded — if we can't save its metadata, remove the
+    // orphaned object rather than leaving it in MinIO with no database record.
+    await deleteObject(s3Key).catch(() => {})
+    throw err
+  }
 }
 
 export async function listDocuments() {

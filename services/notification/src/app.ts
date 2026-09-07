@@ -2,6 +2,7 @@ import express from "express";
 import { config } from "./config";
 import { startConsumer } from "./modules/notification/notification.consumer";
 import { notificationRoutes } from "./modules/notification/notification.routes";
+import { errorMeta, logger } from "./utils/logger";
 
 const app = express();
 
@@ -14,9 +15,9 @@ app.use((req, res) => {
 
 async function start() {
   await startConsumer();
-  console.log("notification service consumer started");
+  logger.info("notification service consumer started");
   app.listen(config.port, () => {
-    console.log(`${config.serviceName} service running on port ${config.port}`);
+    logger.info(`${config.serviceName} service running on port ${config.port}`);
   });
 }
 
@@ -24,7 +25,7 @@ export { app };
 
 if (require.main === module) {
   start().catch((err) => {
-    console.error("failed to start notification service", err);
+    logger.error("failed to start notification service", errorMeta(err));
     process.exit(1);
   });
 }

@@ -14,7 +14,8 @@
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "kafkajs": "^2.2.4",
-    "mongoose": "^8.9.5"
+    "mongoose": "^8.9.5",
+    "winston": "^3.17.0"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",

@@ -1,5 +1,6 @@
 import { Kafka } from 'kafkajs'
 import { config } from '../../config'
+import { errorMeta, logger } from '../../utils/logger'
 import { PassportEvent, sendPassportEventEmail } from './notification.service'
 
 const TOPICS = ['passport.created', 'passport.deleted']
@@ -22,7 +23,7 @@ export async function startConsumer(): Promise<void> {
       try {
         await handleMessage(message.value.toString())
       } catch (err) {
-        console.error('failed to process passport event', err)
+        logger.error('failed to process passport event', errorMeta(err))
       }
     },
   })

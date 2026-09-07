@@ -1,4 +1,5 @@
 import { Kafka, Producer } from 'kafkajs'
+import { errorMeta, logger } from '../utils/logger'
 import { config } from './index'
 
 const kafka = new Kafka({
@@ -30,7 +31,7 @@ export async function publishEvent(topic: string, message: Record<string, unknow
       messages: [{ value: JSON.stringify(message) }],
     })
   } catch (err) {
-    console.error(`failed to publish event to topic "${topic}"`, err)
+    logger.error(`failed to publish event to topic "${topic}"`, errorMeta(err))
   }
 }
 
