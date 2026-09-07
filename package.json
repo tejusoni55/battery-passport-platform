@@ -15,6 +15,7 @@
     "dev:notification": "npm run dev -w @battery-passport/notification",
     "build": "npm run build --workspaces",
     "test": "npm run test --workspaces",
+    "test:all": "npm run test --workspaces",
     "test:auth": "npm run test -w @battery-passport/auth",
     "test:passport": "npm run test -w @battery-passport/passport",
     "test:document": "npm run test -w @battery-passport/document",
