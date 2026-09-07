@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from 'express'
 import { createPassport, deletePassport, getPassportById, listPassports, updatePassport } from './passport.service'
-import { validatePassportInput } from './passport.validation'
+import { validatePaginationQuery, validatePassportInput } from './passport.validation'
 
 export async function create(req: Request, res: Response, next: NextFunction) {
   try {
@@ -12,10 +12,11 @@ export async function create(req: Request, res: Response, next: NextFunction) {
   }
 }
 
-export async function list(_req: Request, res: Response, next: NextFunction) {
+export async function list(req: Request, res: Response, next: NextFunction) {
   try {
-    const passports = await listPassports()
-    res.json(passports)
+    const pagination = validatePaginationQuery(req.query)
+    const result = await listPassports(pagination)
+    res.json(result)
   } catch (err) {
     next(err)
   }

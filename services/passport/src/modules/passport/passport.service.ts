@@ -2,7 +2,7 @@ import mongoose from 'mongoose'
 import { publishEvent } from '../../config/kafka'
 import { ApiError } from '../../utils/api-error'
 import { PassportModel } from './passport.model'
-import { PassportInput } from './passport.validation'
+import { PaginationQuery, PassportInput } from './passport.validation'
 
 export async function createPassport(input: PassportInput) {
   const existing = await PassportModel.findOne({
@@ -23,8 +23,23 @@ export async function createPassport(input: PassportInput) {
   return passport
 }
 
-export async function listPassports() {
-  return PassportModel.find().sort({ createdAt: -1 })
+export async function listPassports({ page, limit }: PaginationQuery) {
+  const skip = (page - 1) * limit
+
+  const [data, total] = await Promise.all([
+    PassportModel.find().sort({ createdAt: -1 }).skip(skip).limit(limit),
+    PassportModel.countDocuments(),
+  ])
+
+  return {
+    data,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  }
 }
 
 export async function getPassportById(id: string) {

@@ -83,12 +83,12 @@ describe('GET /api/documents', () => {
   })
 })
 
-describe('GET /api/documents/:id/download', () => {
+describe('GET /api/documents/:docId', () => {
   it('returns a presigned download URL for the uploaded object', async () => {
     const uploaded = await uploadTestFile()
 
     const res = await request(app)
-      .get(`/api/documents/${uploaded.body.id}/download`)
+      .get(`/api/documents/${uploaded.body.id}`)
       .set('Authorization', `Bearer ${USER_TOKEN}`)
 
     expect(res.status).toBe(200)
@@ -97,7 +97,32 @@ describe('GET /api/documents/:id/download', () => {
   })
 })
 
-describe('DELETE /api/documents/:id', () => {
+describe('PUT /api/documents/:docId', () => {
+  it('updates the file name', async () => {
+    const uploaded = await uploadTestFile()
+
+    const res = await request(app)
+      .put(`/api/documents/${uploaded.body.id}`)
+      .set('Authorization', `Bearer ${USER_TOKEN}`)
+      .send({ fileName: 'renamed-report.pdf' })
+
+    expect(res.status).toBe(200)
+    expect(res.body.fileName).toBe('renamed-report.pdf')
+  })
+
+  it('rejects a missing fileName with 400', async () => {
+    const uploaded = await uploadTestFile()
+
+    const res = await request(app)
+      .put(`/api/documents/${uploaded.body.id}`)
+      .set('Authorization', `Bearer ${USER_TOKEN}`)
+      .send({})
+
+    expect(res.status).toBe(400)
+  })
+})
+
+describe('DELETE /api/documents/:docId', () => {
   it('deletes the object and its metadata', async () => {
     const uploaded = await uploadTestFile()
 
@@ -108,7 +133,7 @@ describe('DELETE /api/documents/:id', () => {
     expect(deleteRes.status).toBe(204)
 
     const downloadRes = await request(app)
-      .get(`/api/documents/${uploaded.body.id}/download`)
+      .get(`/api/documents/${uploaded.body.id}`)
       .set('Authorization', `Bearer ${USER_TOKEN}`)
 
     expect(downloadRes.status).toBe(404)

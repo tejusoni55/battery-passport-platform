@@ -14,3 +14,10 @@ export const uploadMiddleware = multer({
     cb(null, true)
   },
 })
+
+export function validateUpdateInput(body: any): { fileName: string } {
+  if (typeof body?.fileName !== 'string' || body.fileName.trim().length === 0) {
+    throw new ApiError(400, 'fileName is required')
+  }
+  return { fileName: body.fileName.trim() }
+}

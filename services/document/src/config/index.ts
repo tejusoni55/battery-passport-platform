@@ -17,6 +17,7 @@ export const config = {
   mongoUri: required('MONGO_URI'),
   authServiceUrl: process.env.AUTH_SERVICE_URL ?? 'http://auth:3001',
   minioEndpoint: process.env.MINIO_ENDPOINT ?? 'http://minio:9000',
+  minioPublicUrl: required('MINIO_PUBLIC_URL'),
   minioAccessKey: required('MINIO_ROOT_USER'),
   minioSecretKey: required('MINIO_ROOT_PASSWORD'),
   minioBucket: process.env.MINIO_BUCKET ?? 'documents',

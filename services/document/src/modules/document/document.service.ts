@@ -27,6 +27,13 @@ export async function getDownloadUrl(id: string) {
   return getPresignedDownloadUrl(document.s3Key)
 }
 
+export async function updateDocument(id: string, input: { fileName: string }) {
+  const document = await findDocumentById(id)
+  document.fileName = input.fileName
+  await document.save()
+  return document
+}
+
 export async function deleteDocument(id: string) {
   const document = await findDocumentById(id)
   await deleteObject(document.s3Key)

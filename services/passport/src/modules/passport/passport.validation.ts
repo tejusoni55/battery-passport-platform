@@ -16,6 +16,34 @@ export interface PassportInput {
   carbonFootprint: CarbonFootprint
 }
 
+export interface PaginationQuery {
+  page: number
+  limit: number
+}
+
+const MAX_LIMIT = 100
+
+export function validatePaginationQuery(query: any): PaginationQuery {
+  const page = parsePositiveInt(query?.page, 1, 'page')
+  const limit = parsePositiveInt(query?.limit, 10, 'limit')
+
+  if (limit > MAX_LIMIT) {
+    throw new ApiError(400, `limit must not exceed ${MAX_LIMIT}`)
+  }
+
+  return { page, limit }
+}
+
+function parsePositiveInt(value: unknown, defaultValue: number, field: string): number {
+  if (value === undefined) {
+    return defaultValue
+  }
+  if (typeof value !== 'string' || !/^\d+$/.test(value) || Number(value) < 1) {
+    throw new ApiError(400, `${field} must be a positive integer`)
+  }
+  return Number(value)
+}
+
 export function validatePassportInput(data: any): PassportInput {
   if (typeof data !== 'object' || data === null) {
     throw new ApiError(400, 'data is required')

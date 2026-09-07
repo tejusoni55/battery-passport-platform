@@ -133,7 +133,7 @@ describe('POST /api/passports', () => {
 })
 
 describe('GET /api/passports', () => {
-  it('lists all passports', async () => {
+  it('lists passports with default pagination', async () => {
     await request(app)
       .post('/api/passports')
       .set('Authorization', `Bearer ${ADMIN_TOKEN}`)
@@ -147,7 +147,39 @@ describe('GET /api/passports', () => {
     const res = await request(app).get('/api/passports').set('Authorization', `Bearer ${USER_TOKEN}`)
 
     expect(res.status).toBe(200)
-    expect(res.body).toHaveLength(2)
+    expect(res.body.data).toHaveLength(2)
+    expect(res.body.pagination).toEqual({ page: 1, limit: 10, total: 2, totalPages: 1 })
+  })
+
+  it('paginates results using page and limit query params', async () => {
+    for (let i = 1; i <= 3; i++) {
+      await request(app)
+        .post('/api/passports')
+        .set('Authorization', `Bearer ${ADMIN_TOKEN}`)
+        .send(buildPassportPayload({ batteryIdentifier: `BP-2024-0${i}` }))
+    }
+
+    const res = await request(app)
+      .get('/api/passports?page=2&limit=2')
+      .set('Authorization', `Bearer ${USER_TOKEN}`)
+
+    expect(res.status).toBe(200)
+    expect(res.body.data).toHaveLength(1)
+    expect(res.body.pagination).toEqual({ page: 2, limit: 2, total: 3, totalPages: 2 })
+  })
+
+  it('rejects an invalid page or limit with 400', async () => {
+    const res = await request(app)
+      .get('/api/passports?page=0&limit=10')
+      .set('Authorization', `Bearer ${USER_TOKEN}`)
+
+    expect(res.status).toBe(400)
+
+    const overLimitRes = await request(app)
+      .get('/api/passports?page=1&limit=101')
+      .set('Authorization', `Bearer ${USER_TOKEN}`)
+
+    expect(overLimitRes.status).toBe(400)
   })
 })
 
