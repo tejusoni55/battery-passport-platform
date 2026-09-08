@@ -49,6 +49,21 @@ describe('passport.created event', () => {
   })
 })
 
+describe('passport.updated event', () => {
+  it('does not send an email', async () => {
+    const event = {
+      passportId: 'p-789',
+      batteryIdentifier: 'BATT-0003',
+      eventType: 'updated',
+      timestamp: '2026-01-17T10:00:00.000Z',
+    }
+
+    await handleMessage(JSON.stringify(event))
+
+    expect(sendMailMock).not.toHaveBeenCalled()
+  })
+})
+
 describe('passport.deleted event', () => {
   it('sends an email with the deleted subject and event details', async () => {
     const event = {

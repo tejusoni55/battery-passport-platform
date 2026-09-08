@@ -34,12 +34,13 @@ Typical flow:
 
 ## Kafka topics
 
-Passport publishes an event whenever a passport is created or deleted:
+Passport publishes an event whenever a passport is created, updated, or deleted:
 
 - `passport.created`
+- `passport.updated`
 - `passport.deleted`
 
-Both use the same payload shape, `eventType` tells them apart:
+All three use the same payload shape, `eventType` tells them apart:
 
 ```json
 {
@@ -50,7 +51,7 @@ Both use the same payload shape, `eventType` tells them apart:
 }
 ```
 
-Notification consumes both topics and sends one email per event, check Mailpit at http://localhost:8025 to see them land.
+Notification consumes all three but only emails on created/deleted, updates are ignored, check Mailpit at http://localhost:8025 to see them land.
 
 ## Testing
 

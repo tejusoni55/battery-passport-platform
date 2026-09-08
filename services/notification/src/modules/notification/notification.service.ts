@@ -4,7 +4,7 @@ import { config } from '../../config'
 export interface PassportEvent {
   passportId: string
   batteryIdentifier: string
-  eventType: 'created' | 'deleted'
+  eventType: 'created' | 'updated' | 'deleted'
   timestamp: string
 }
 
@@ -17,6 +17,7 @@ const transporter = nodemailer.createTransport({
 
 const SUBJECTS: Record<PassportEvent['eventType'], string> = {
   created: 'Passport Created',
+  updated: 'Passport Updated',
   deleted: 'Passport Deleted',
 }
 

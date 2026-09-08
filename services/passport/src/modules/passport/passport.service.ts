@@ -68,6 +68,13 @@ export async function updatePassport(id: string, input: PassportInput) {
   Object.assign(passport, input)
   await passport.save()
 
+  void publishEvent('passport.updated', {
+    passportId: passport.id,
+    batteryIdentifier: passport.generalInformation.batteryIdentifier,
+    eventType: 'updated',
+    timestamp: new Date().toISOString(),
+  })
+
   return passport
 }
 

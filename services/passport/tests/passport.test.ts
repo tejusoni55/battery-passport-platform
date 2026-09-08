@@ -4,8 +4,10 @@ import request from 'supertest'
 
 // Mock only the Kafka publish layer, not the Passport service — no real
 // kafkajs client is ever constructed, so tests never touch the network.
+const publishEventMock = jest.fn().mockResolvedValue(undefined)
+
 jest.mock('../src/config/kafka', () => ({
-  publishEvent: jest.fn().mockResolvedValue(undefined),
+  publishEvent: (...args: unknown[]) => publishEventMock(...args),
   disconnectProducer: jest.fn().mockResolvedValue(undefined),
 }))
 
@@ -36,6 +38,7 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   await mongoose.connection.db?.dropDatabase()
+  publishEventMock.mockClear()
 })
 
 afterAll(async () => {
@@ -223,6 +226,14 @@ describe('PUT /api/passports/:id', () => {
 
     expect(res.status).toBe(200)
     expect(res.body.generalInformation.batteryStatus).toBe('second_life')
+    expect(publishEventMock).toHaveBeenCalledWith(
+      'passport.updated',
+      expect.objectContaining({
+        passportId: created.body.id,
+        batteryIdentifier: 'BP-2024-011',
+        eventType: 'updated',
+      })
+    )
   })
 })
 
