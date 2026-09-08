@@ -18,4 +18,11 @@ export const config = {
   authServiceUrl: required('AUTH_SERVICE_URL'),
   kafkaBroker: required('KAFKA_BROKER'),
   kafkaProducerRetries: Number(process.env.KAFKA_PRODUCER_RETRIES ?? 3),
+  // Extra origins allowed to call this API from a browser (e.g. this
+  // service's own Railway public URL), on top of its own localhost — see
+  // app.ts. Comma-separated; empty/unset is fine, localhost still works.
+  corsAllowedOrigins: (process.env.CORS_ALLOWED_ORIGIN ?? '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean),
 }

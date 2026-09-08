@@ -25,4 +25,11 @@ export const config = {
   mongoUri: required('MONGO_URI'),
   jwtSecret: required('JWT_SECRET'),
   jwtExpiresIn: parseJwtExpiresIn(process.env.JWT_EXPIRES_IN ?? '3600'),
+  // Extra origins allowed to call this API from a browser (e.g. this
+  // service's own Railway public URL), on top of its own localhost — see
+  // app.ts. Comma-separated; empty/unset is fine, localhost still works.
+  corsAllowedOrigins: (process.env.CORS_ALLOWED_ORIGIN ?? '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean),
 }

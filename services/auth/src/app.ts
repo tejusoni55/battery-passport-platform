@@ -1,3 +1,4 @@
+import cors from "cors";
 import express, { NextFunction, Request, Response } from "express";
 import swaggerUi from "swagger-ui-express";
 import { config } from "./config";
@@ -8,6 +9,22 @@ import { ApiError } from "./utils/api-error";
 import { errorMeta, logger } from "./utils/logger";
 
 const app = express();
+
+// Allowlist only: this service's own localhost (dev) and its own public
+// Railway URL (via CORS_ALLOWED_ORIGIN), so Swagger UI's "Execute" works
+// from wherever /docs itself was loaded — never a wildcard origin.
+const allowedOrigins = [`http://localhost:${config.port}`, ...config.corsAllowedOrigins];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      callback(new Error("Not allowed by CORS"));
+    },
+  })
+);
 
 app.use(express.json());
 

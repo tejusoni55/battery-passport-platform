@@ -21,4 +21,11 @@ export const config = {
   smtpPassword: process.env.SMTP_PASS,
   smtpFrom: process.env.SMTP_FROM ?? 'notifications@battery-passport.local',
   notifyEmailTo: required('NOTIFY_EMAIL_TO'),
+  // Extra origins allowed to call this API from a browser (e.g. this
+  // service's own Railway public URL), on top of its own localhost — see
+  // app.ts. Comma-separated; empty/unset is fine, localhost still works.
+  corsAllowedOrigins: (process.env.CORS_ALLOWED_ORIGIN ?? '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean),
 }

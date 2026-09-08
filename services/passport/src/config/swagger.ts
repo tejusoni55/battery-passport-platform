@@ -1,5 +1,4 @@
 import swaggerJsdoc from 'swagger-jsdoc'
-import { config } from './index'
 
 const generalInformation = {
   batteryIdentifier: 'BP-2024-011',
@@ -36,7 +35,10 @@ export const swaggerSpec = swaggerJsdoc({
   definition: {
     openapi: '3.0.3',
     info: { title: 'Passport Service API', version: '1.0.0' },
-    servers: [{ url: `http://localhost:${config.port}` }],
+    // Relative, not a hardcoded localhost URL: Swagger UI resolves this
+    // against whatever origin served /docs, so "Execute" hits the right
+    // host whether that's localhost or a Railway deployment.
+    servers: [{ url: '/' }],
     components: {
       securitySchemes: {
         bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
