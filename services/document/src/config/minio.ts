@@ -1,4 +1,5 @@
 import { Client } from 'minio'
+import { errorMeta, logger } from '../utils/logger'
 import { config } from './index'
 
 function createClient(endpointUrl: string): Client {
@@ -26,9 +27,28 @@ const minioClient = createClient(config.minioEndpoint)
 const presignClient = createClient(config.minioPublicUrl)
 
 export async function ensureBucket(): Promise<void> {
-  const exists = await minioClient.bucketExists(config.minioBucket).catch(() => false)
-  if (!exists) {
+  let exists: boolean
+  try {
+    exists = await minioClient.bucketExists(config.minioBucket)
+  } catch (err) {
+    // A throw here means MinIO is unreachable or the credentials are wrong —
+    // not "bucket doesn't exist" (bucketExists resolves false for that case).
+    // Treating it as false would hide the real problem and likely fail again,
+    // more confusingly, on the makeBucket call below.
+    logger.error('failed to check MinIO bucket', { bucket: config.minioBucket, ...errorMeta(err) })
+    throw err
+  }
+
+  if (exists) {
+    return
+  }
+
+  try {
     await minioClient.makeBucket(config.minioBucket)
+    logger.info('created MinIO bucket', { bucket: config.minioBucket })
+  } catch (err) {
+    logger.error('failed to create MinIO bucket', { bucket: config.minioBucket, ...errorMeta(err) })
+    throw err
   }
 }
 

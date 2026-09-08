@@ -8,6 +8,13 @@ export const logger = winston.createLogger({
   transports: [new winston.transports.Console()],
 })
 
-export function errorMeta(err: unknown): { error: string } {
-  return { error: err instanceof Error ? err.message : String(err) }
+export function errorMeta(err: unknown): { error: string; stack?: string } {
+  if (!(err instanceof Error)) {
+    return { error: String(err) }
+  }
+  const meta: { error: string; stack?: string } = { error: err.message }
+  if (process.env.NODE_ENV !== 'production') {
+    meta.stack = err.stack
+  }
+  return meta
 }
