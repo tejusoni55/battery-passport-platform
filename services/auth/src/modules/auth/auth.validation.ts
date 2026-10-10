@@ -1,13 +1,10 @@
 import { ApiError } from '../../utils/api-error'
-import { UserRole } from './auth.model'
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const ROLES: UserRole[] = ['admin', 'user']
 
 export interface RegisterInput {
   email: string
   password: string
-  role: UserRole
 }
 
 export interface LoginInput {
@@ -18,7 +15,6 @@ export interface LoginInput {
 interface RegisterBody {
   email?: unknown
   password?: unknown
-  role?: unknown
 }
 
 interface LoginBody {
@@ -29,16 +25,12 @@ interface LoginBody {
 export function validateRegister(body: RegisterBody): RegisterInput {
   const email = readEmail(body?.email)
   const password = typeof body?.password === 'string' ? body.password : ''
-  const role = body?.role
 
   if (password.length < 8) {
     throw new ApiError(400, 'Password must be at least 8 characters')
   }
-  if (!ROLES.includes(role as UserRole)) {
-    throw new ApiError(400, "Role must be either 'admin' or 'user'")
-  }
 
-  return { email, password, role: role as UserRole }
+  return { email, password }
 }
 
 export function validateLogin(body: LoginBody): LoginInput {

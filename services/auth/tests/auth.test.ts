@@ -58,6 +58,15 @@ describe('POST /api/auth/register', () => {
 
     expect(res.status).toBe(400)
   })
+
+  it('ignores a client-supplied admin role and always registers as user', async () => {
+    const res = await request(app)
+      .post('/api/auth/register')
+      .send({ email: 'mallory@example.com', password: 'password123', role: 'admin' })
+
+    expect(res.status).toBe(201)
+    expect(res.body.role).toBe('user')
+  })
 })
 
 describe('POST /api/auth/login', () => {
