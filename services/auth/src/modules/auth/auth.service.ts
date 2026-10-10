@@ -14,7 +14,9 @@ export async function registerUser(input: RegisterInput) {
   }
 
   const password = await bcrypt.hash(input.password, SALT_ROUNDS)
-  const user = await UserModel.create({ email: input.email, password, role: input.role })
+  // Public self-registration can never create an admin: the role is always
+  // 'user' here, regardless of anything the client sends in the request body.
+  const user = await UserModel.create({ email: input.email, password, role: 'user' })
 
   return { id: user.id, email: user.email, role: user.role }
 }
